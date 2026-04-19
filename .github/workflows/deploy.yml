@@ -63,7 +63,7 @@ jobs:
 
             # Install core dependencies
             sudo apt-get update -y
-            sudo apt-get install -y python3 python3-pip python3-venv unzip curl xvfb nginx
+            sudo apt-get install -y python3 python3-pip python3-venv unzip curl xvfb nginx build-essential
 
             # Install Chrome & ChromeDriver
             if ! command -v google-chrome &> /dev/null; then
@@ -76,6 +76,7 @@ jobs:
             # Extract project code
             unzip -o /tmp/deploy.zip -d $DEST_DIR
             rm -f /tmp/deploy.zip
+            sudo chown -R ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} $DEST_DIR
 
             cd $DEST_DIR
 

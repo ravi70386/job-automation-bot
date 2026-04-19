@@ -77,17 +77,26 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# --- Ensure Admin User ---
-db = SessionLocal()
-if not db.query(User).filter(User.username == "admin").first():
-    logger.info("Creating default admin user...")
-    admin_user = User(username="admin", hashed_password=get_password_hash("admin123"))
-    db.add(admin_user)
-    db.commit()
-db.close()
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure Admin User
+    db = SessionLocal()
+    try:
+        if not db.query(User).filter(User.username == "admin").first():
+            logger.info("Creating default admin user...")
+            admin_user = User(username="admin", hashed_password=get_password_hash("admin123"))
+            db.add(admin_user)
+            db.commit()
+    except Exception as e:
+        logger.error(f"Error creating admin user: {str(e)}")
+    finally:
+        db.close()
+    yield
 
 # --- App Setup ---
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 templates = Jinja2Templates(directory="templates")
 # Disable cache to avoid unhashable key errors in experimental Python 3.14
 templates.env.cache = None
