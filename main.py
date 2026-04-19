@@ -1,7 +1,7 @@
 import os
 import shutil
 import logging
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
@@ -231,16 +231,35 @@ async def logs_ui(request: Request, user: User = Depends(get_current_user_from_c
 # --- Action Routes ---
 
 @app.post("/resumes/upload")
-async def upload_resume(file: UploadFile = File(...), user: User = Depends(get_current_user_from_cookie)):
+async def upload_resumes(files: List[UploadFile] = File(...), user: User = Depends(get_current_user_from_cookie)):
     if not user: raise HTTPException(status_code=401)
-    if file.filename.endswith(".pdf"):
-        logger.info(f"Uploading resume: {file.filename} by user {user.username}")
-        with open(os.path.join(RESUMES_DIR, file.filename), "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        logger.info(f"Resume {file.filename} uploaded successfully")
-    else:
-        logger.warning(f"Attempted to upload invalid file: {file.filename}")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    for file in files:
+        if file.filename.endswith(".pdf"):
+            base_name = os.path.splitext(file.filename)[0]
+            new_filename = f"{base_name}_{timestamp}.pdf"
+            logger.info(f"Uploading resume: {new_filename} by user {user.username}")
+            with open(os.path.join(RESUMES_DIR, new_filename), "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        else:
+            logger.warning(f"Skipped invalid file format: {file.filename}")
     return RedirectResponse(url="/resumes_ui", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.get("/resumes/download/{filename}")
+async def download_resume(filename: str, user: User = Depends(get_current_user_from_cookie)):
+    if not user: raise HTTPException(status_code=401)
+    file_path = os.path.join(RESUMES_DIR, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, filename=filename)
+    raise HTTPException(status_code=404)
+
+@app.get("/resumes/view/{filename}")
+async def view_resume(filename: str, user: User = Depends(get_current_user_from_cookie)):
+    if not user: raise HTTPException(status_code=401)
+    file_path = os.path.join(RESUMES_DIR, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type="application/pdf")
+    raise HTTPException(status_code=404)
 
 @app.post("/resumes/delete/{filename}")
 async def delete_resume(filename: str, user: User = Depends(get_current_user_from_cookie)):

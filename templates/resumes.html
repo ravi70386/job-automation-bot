@@ -6,34 +6,51 @@
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2>Resume Pool</h2>
-            <form action="/resumes/upload" method="post" enctype="multipart/form-data" style="display: flex; gap: 1rem;">
-                <input type="file" name="file" accept=".pdf" required style="max-width: 250px;">
-                <button type="submit" class="btn">Upload PDF</button>
+            <form action="/resumes/upload" method="post" enctype="multipart/form-data" style="display: flex; gap: 1rem; align-items: center;">
+                <input type="file" name="files" accept=".pdf" multiple required 
+                       style="background: rgba(15,23,42,0.3); border: 1px solid var(--border); padding: 0.5rem; border-radius: 8px; color: var(--text-muted); font-size: 0.875rem;">
+                <button type="submit" class="btn">Upload PDFs</button>
             </form>
         </div>
+
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+            <i class="fas fa-info-circle"></i> Files are automatically timestamped on upload to keep track of versions.
+        </p>
 
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="text-align: left; border-bottom: 1px solid var(--border);">
                         <th style="padding: 1rem;">File Name</th>
-                        <th style="padding: 1rem;">Action</th>
+                        <th style="padding: 1rem; text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for file in resumes %}
-                    <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 1rem;">{{ file }}</td>
+                    <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='rgba(56, 189, 248, 0.05)'" onmouseout="this.style.background='none'">
                         <td style="padding: 1rem;">
-                            <form action="/resumes/delete/{{ file }}" method="post" onsubmit="return confirm('Are you sure?')">
-                                <button type="submit" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 0.875rem;">Delete</button>
-                            </form>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="color: var(--primary); font-size: 1.25rem;">📄</span>
+                                <span style="font-weight: 500;">{{ file }}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 1rem; text-align: right;">
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end; align-items: center;">
+                                <a href="/resumes/view/{{ file }}" target="_blank" style="color: var(--text-muted); text-decoration: none; font-size: 0.875rem; hover: color: var(--primary)">View</a>
+                                <a href="/resumes/download/{{ file }}" style="color: var(--text-muted); text-decoration: none; font-size: 0.875rem;">Download</a>
+                                <form action="/resumes/delete/{{ file }}" method="post" style="display: inline;" onsubmit="return confirm('Delete this resume forever?')">
+                                    <button type="submit" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 0.875rem; font-weight: 500;">Delete</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                     {% if not resumes %}
                     <tr>
-                        <td colspan="2" style="padding: 3rem; text-align: center; color: var(--text-muted);">No resumes uploaded yet.</td>
+                        <td colspan="2" style="padding: 4rem; text-align: center;">
+                            <div style="color: var(--text-muted); margin-bottom: 1rem; font-size: 3rem;">📁</div>
+                            <p style="color: var(--text-muted);">No resumes uploaded yet. Start by adding some PDFs!</p>
+                        </td>
                     </tr>
                     {% endif %}
                 </tbody>
