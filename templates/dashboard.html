@@ -4,17 +4,24 @@
 
 {% block content %}
     <div class="grid">
-        <div class="card">
+        <div class="card" id="statusCard">
             <h3>Bot Status</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1rem;">The bot is currently idle.</p>
-            <form action="/trigger" method="post">
-                <button type="submit" class="btn">🚀 Run Now</button>
-            </form>
+            <div id="idleState">
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">The bot is currently idle.</p>
+                <button onclick="triggerBot()" class="btn" id="runBtn">🚀 Run Now</button>
+            </div>
+            <div id="runningState" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="spinner" style="width: 20px; height: 20px; border: 3px solid rgba(56, 189, 248, 0.3); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="color: var(--primary); font-weight: 600;">Working...</p>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">Applying your "Up Next" resume to your profile.</p>
+            </div>
         </div>
         <div class="card">
             <h3>Next Execution</h3>
             <p style="font-size: 2rem; font-weight: 700;">{{ next_run or "Undefined" }}</p>
-            <p style="color: var(--text-muted);">Scheduled at 00:00 AM daily</p>
+            <p style="color: var(--text-muted);">Scheduled daily</p>
             <a href="/cron_ui" style="color: var(--primary); text-decoration: none; font-size: 0.875rem; display: block; margin-top: 1rem;">Change schedule →</a>
         </div>
         <div class="card">
@@ -31,12 +38,12 @@
 
     <div class="card">
         <h3>Recent Activity</h3>
-        <div style="max-height: 300px; overflow-y: auto;">
+        <div id="logsContainer" style="max-height: 300px; overflow-y: auto;">
             {% if recent_logs %}
                 {% for log in recent_logs %}
                     <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
                         <span>{{ log }}</span>
-                        <a href="/logs/{{ log }}" style="color: var(--primary);">View</a>
+                        <a href="/logs/{{ log }}" style="color: var(--primary); text-decoration: none;">View</a>
                     </div>
                 {% endfor %}
             {% else %}
@@ -44,4 +51,52 @@
             {% endif %}
         </div>
     </div>
+
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+{% endblock %}
+
+{% block extra_js %}
+    async function checkStatus() {
+        try {
+            const response = await fetch('/status');
+            const data = await response.json();
+            
+            const idle = document.getElementById('idleState');
+            const running = document.getElementById('runningState');
+            
+            if (data.is_running) {
+                idle.style.display = 'none';
+                running.style.display = 'block';
+            } else {
+                idle.style.display = 'block';
+                running.style.display = 'none';
+            }
+        } catch (err) {
+            console.error('Status check failed', err);
+        }
+    }
+
+    async function triggerBot() {
+        const btn = document.getElementById('runBtn');
+        btn.disabled = true;
+        btn.innerText = 'Starting...';
+        
+        try {
+            const response = await fetch('/trigger', { method: 'POST' });
+            const data = await response.json();
+            if (data.status === 'started' || data.status === 'already_running') {
+                checkStatus();
+            }
+        } catch (err) {
+            alert('Failed to start bot');
+            btn.disabled = false;
+            btn.innerText = '🚀 Run Now';
+        }
+    }
+
+    // Poll every 3 seconds
+    setInterval(checkStatus, 3000);
+    checkStatus();
 {% endblock %}

@@ -222,6 +222,30 @@ async def resumes_ui(request: Request, user: User = Depends(get_current_user_fro
     resumes = sorted(os.listdir(RESUMES_DIR))
     return templates.TemplateResponse(request, "resumes.html", {"active_page": "resumes", "resumes": resumes})
 
+@app.get("/env_ui", response_class=HTMLResponse)
+async def env_ui(request: Request, user: User = Depends(get_current_user_from_cookie)):
+    if not user: return RedirectResponse(url="/login")
+    env_content = ""
+    if os.path.exists(".env"):
+        with open(".env", "r") as f:
+            env_content = f.read()
+    return templates.TemplateResponse(request, "env.html", {"active_page": "env", "env_content": env_content})
+
+@app.post("/env/update")
+async def update_env(content: str = Form(...), user: User = Depends(get_current_user_from_cookie)):
+    if not user: raise HTTPException(status_code=401)
+    with open(".env", "w") as f:
+        f.write(content)
+    logger.info(f"Environment file updated by user {user.username}")
+    return RedirectResponse(url="/env_ui?saved=true", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/restart")
+async def restart_server(user: User = Depends(get_current_user_from_cookie)):
+    if not user: raise HTTPException(status_code=401)
+    logger.info(f"Server restart initiated by user {user.username}")
+    # On systemd/gunicorn, exiting will trigger an automatic restart if Restart=always
+    os._exit(0)
+
 @app.get("/logs_ui", response_class=HTMLResponse)
 async def logs_ui(request: Request, user: User = Depends(get_current_user_from_cookie)):
     if not user: return RedirectResponse(url="/login")
@@ -273,12 +297,19 @@ async def delete_resume(filename: str, user: User = Depends(get_current_user_fro
         logger.error(f"Attempted to delete non-existent resume: {filename}")
     return RedirectResponse(url="/resumes_ui", status_code=status.HTTP_303_SEE_OTHER)
 
+@app.get("/status")
+async def get_status(user: User = Depends(get_current_user_from_cookie)):
+    if not user: raise HTTPException(status_code=401)
+    return {"is_running": os.path.exists(".bot_locked")}
+
 @app.post("/trigger")
 async def trigger_bot(background_tasks: BackgroundTasks, user: User = Depends(get_current_user_from_cookie)):
     if not user: raise HTTPException(status_code=401)
+    if os.path.exists(".bot_locked"):
+        return {"status": "already_running"}
     logger.info(f"Manual bot trigger initiated by user {user.username}")
     background_tasks.add_task(run_update)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    return {"status": "started"}
 
 @app.get("/logs/{filename}")
 async def view_log(filename: str, user: User = Depends(get_current_user_from_cookie)):

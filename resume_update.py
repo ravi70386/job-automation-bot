@@ -44,7 +44,7 @@ def run_update():
         return
 
     # Round Robin selection logic
-    POINTER_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".resume_pointer")
+    POINTER_FILE = ".resume_pointer"
     current_index = 0
     
     if os.path.exists(POINTER_FILE):
@@ -70,12 +70,15 @@ def run_update():
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    # Set a common user agent to avoid detection
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
     driver = webdriver.Chrome(options=chrome_options)
     driver.set_window_size(1920, 1080)
     wait = WebDriverWait(driver, 30)
+
+    # Create lock file
+    LOCK_FILE = ".bot_locked"
+    with open(LOCK_FILE, "w") as f: f.write(str(os.getpid()))
 
     try:
         logger.info("Opening Naukri...")
@@ -120,6 +123,7 @@ def run_update():
         logger.error(f"ERROR: {str(e)}")
     finally:
         driver.quit()
+        if os.path.exists(LOCK_FILE): os.remove(LOCK_FILE)
         logger.info("Browser closed.")
 
 if __name__ == "__main__":
