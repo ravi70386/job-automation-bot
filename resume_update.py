@@ -46,7 +46,6 @@ def run_update():
     # Round Robin selection logic
     POINTER_FILE = ".resume_pointer"
     current_index = 0
-    
     if os.path.exists(POINTER_FILE):
         try:
             with open(POINTER_FILE, "r") as f:
@@ -54,12 +53,10 @@ def run_update():
         except:
             current_index = 0
     
-    # Calculate next index
     next_index = current_index % len(files)
     resume_file = files[next_index]
     RESUME_PATH = os.path.join(local_resumes, resume_file)
 
-    # Save next pointer for future run
     with open(POINTER_FILE, "w") as f:
         f.write(str(next_index + 1))
 
@@ -73,16 +70,21 @@ def run_update():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--remote-debugging-port=9222")
-    # Set a common user agent to avoid detection
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-    driver = webdriver.Chrome(options=chrome_options)
-    driver.set_window_size(1920, 1080)
-    wait = WebDriverWait(driver, 30)
-
-    # Create lock file
+    # Create lock file FIRST
     LOCK_FILE = ".bot_locked"
     with open(LOCK_FILE, "w") as f: f.write(str(os.getpid()))
+
+    logger.info("Setting up Chrome Driver...")
+    try:
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.set_window_size(1920, 1080)
+        wait = WebDriverWait(driver, 30)
+    except Exception as e:
+        logger.error(f"CHROME DRIVER ERROR: {str(e)}")
+        if os.path.exists(LOCK_FILE): os.remove(LOCK_FILE)
+        return
 
     try:
         logger.info("Opening Naukri...")
