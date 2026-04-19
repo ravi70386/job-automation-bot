@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Login - JobBot{% endblock %}
+
+{% block extra_css %}
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    .login-card {
+        width: 100%;
+        max-width: 400px;
+        animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+    input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+    .error {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 1rem;
+        text-align: center;
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="login-card card">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Welcome Back</h2>
+        <form action="/login" method="post">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Sign In</button>
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
+        </form>
+    </div>
+{% endblock %}

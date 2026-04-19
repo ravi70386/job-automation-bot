@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Resumes - JobBot{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Resume Pool</h2>
+            <form action="/resumes/upload" method="post" enctype="multipart/form-data" style="display: flex; gap: 1rem;">
+                <input type="file" name="file" accept=".pdf" required style="max-width: 250px;">
+                <button type="submit" class="btn">Upload PDF</button>
+            </form>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                        <th style="padding: 1rem;">File Name</th>
+                        <th style="padding: 1rem;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in resumes %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1rem;">{{ file }}</td>
+                        <td style="padding: 1rem;">
+                            <form action="/resumes/delete/{{ file }}" method="post" onsubmit="return confirm('Are you sure?')">
+                                <button type="submit" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 0.875rem;">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not resumes %}
+                    <tr>
+                        <td colspan="2" style="padding: 3rem; text-align: center; color: var(--text-muted);">No resumes uploaded yet.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,10 @@
+selenium
+python-dotenv
+fastapi
+uvicorn
+python-multipart
+jinja2
+python-crontab
+sqlalchemy
+bcrypt
+python-jose[cryptography]

@@ -13,8 +13,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # For Python, we don't have a build step like Node.js
-      # We just zip the project directory directly
       - name: Create Deployment Package
         run: zip -r deploy.zip . -x "*.git*" -x "*__pycache__*" -x "venv/*"
 
@@ -54,39 +52,57 @@ jobs:
           script: |
             echo "📦 Deploying Job Automation Bot..."
 
-            # Setup destination directory
             DEST_DIR="/home/${{ secrets.EC2_USERNAME }}/job-automation-bot"
             mkdir -p $DEST_DIR
 
-            # Install core dependencies (Python, pip, unzip, and Chrome for Selenium)
+            # Install core dependencies
             sudo apt-get update -y
             sudo apt-get install -y python3 python3-pip python3-venv unzip curl xvfb
-            sudo apt-get install -y chromium-browser chromium-chromedriver || echo "Could not install chromium, trying google-chrome..."
+            
+            # Install Chrome & ChromeDriver
+            if ! command -v google-chrome &> /dev/null; then
+                wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+                sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+                sudo apt-get update
+                sudo apt-get install -y google-chrome-stable
+            fi
 
             # Extract project code
             unzip -o /tmp/deploy.zip -d $DEST_DIR
             rm -f /tmp/deploy.zip
 
-            # Move to project directory
             cd $DEST_DIR
 
-            # Set up Python virtual environment
+            # Set up virtual environment
             if [ ! -d "venv" ]; then
                 python3 -m venv venv
             fi
-
-            # Activate virtual environment and install dependencies
             source venv/bin/activate
-            # Upgrade pip
             pip install --upgrade pip
-            
-            if [ -f "requirements.txt" ]; then
-                pip install -r requirements.txt
-            else
-                pip install selenium python-dotenv
-            fi
+            pip install -r requirements.txt
 
-            # Optionally, you can set up a cronjob or systemd service here 
-            # to run the bot periodically on the EC2 server
+            # Create systemd service for FastAPI
+            sudo tee /etc/systemd/system/job-bot.service > /dev/null <<EOF
+            [Unit]
+            Description=Job Automation Bot Manager (FastAPI)
+            After=network.target
 
-            echo "✅ Deployment complete!"
+            [Service]
+            User=${{ secrets.EC2_USERNAME }}
+            WorkingDirectory=$DEST_DIR
+            ExecStart=$DEST_DIR/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+            Restart=always
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            sudo systemctl daemon-reload
+            sudo systemctl enable job-bot
+            sudo systemctl restart job-bot
+
+            # Setup initial cron job (runs every day at 00:00)
+            # Use python to set it up reliably via python-crontab logic or simple crontab command
+            (crontab -l 2>/dev/null | grep -v "job-automation-bot"; echo "0 0 * * * cd $DEST_DIR && $DEST_DIR/venv/bin/python $DEST_DIR/resume_update.py # job-automation-bot") | crontab -
+
+            echo "✅ Deployment complete! API running on port 8000"

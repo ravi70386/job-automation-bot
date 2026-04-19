@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Bot Schedule - JobBot{% endblock %}
+
+{% block extra_css %}
+    .toggle-advanced {
+        background: none;
+        border: none;
+        color: var(--primary);
+        cursor: pointer;
+        font-size: 0.875rem;
+        margin-top: 1rem;
+        padding: 0;
+        text-decoration: underline;
+    }
+    .schedule-option {
+        background: rgba(15, 23, 42, 0.3);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    .schedule-option:hover {
+        border-color: var(--primary);
+    }
+    select, input[type="time"] {
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: white;
+        padding: 0.75rem;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+        width: 100%;
+        max-width: 300px;
+    }
+    select:focus, input:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <h1>Robot Schedule</h1>
+        <p style="color: var(--text-muted); margin-bottom: 2.5rem;">Tell the robot how often and at what time it should check and update your profile.</p>
+        
+        <form id="scheduleForm" action="/cron/update" method="post">
+            <div class="schedule-option">
+                <h3>1. How often should it run?</h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">Choose the frequency that works best for you.</p>
+                <select id="frequency" onchange="updateUI()">
+                    <option value="daily">Once every day (Recommended)</option>
+                    <option value="twice">Twice every day</option>
+                    <option value="hourly">Once every hour</option>
+                    <option value="workdays">Only on workdays (Mon-Fri)</option>
+                </select>
+            </div>
+
+            <div id="timeSelection" class="schedule-option">
+                <h3>2. At what time?</h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">Pick a time when you are usually not actively using the site.</p>
+                <input type="time" id="runTime" value="00:00" onchange="generateCron()">
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <button type="submit" class="btn" style="width: 100%; max-width: 300px; padding: 1rem;">💾 Save New Schedule</button>
+            </div>
+
+            <!-- Hidden input that holds the actual technical code -->
+            <input type="hidden" name="schedule" id="cronOutput" value="{{ current_schedule or '0 0 * * *' }}">
+            
+            <div style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <button type="button" class="toggle-advanced" onclick="toggleAdvanced()">⚙️ Advanced: Show technical code</button>
+                <div id="advancedSection" style="display: none; margin-top: 1rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Current Code: <code id="displayCron">{{ current_schedule or '0 0 * * *' }}</code></p>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    function updateUI() {
+        const freq = document.getElementById('frequency').value;
+        const timeSelection = document.getElementById('timeSelection');
+        
+        // Show time selection only for daily/workdays
+        if (freq === 'daily' || freq === 'workdays') {
+            timeSelection.style.display = 'block';
+        } else {
+            timeSelection.style.display = 'none';
+        }
+        generateCron();
+    }
+
+    function generateCron() {
+        const freq = document.getElementById('frequency').value;
+        const timeInput = document.getElementById('runTime').value;
+        const [hour, minute] = timeInput.split(':').map(n => parseInt(n));
+        
+        let cron = "0 0 * * *"; // Default
+
+        if (freq === 'daily') {
+            cron = `${minute} ${hour} * * *`;
+        } else if (freq === 'twice') {
+            cron = `0 */12 * * *`;
+        } else if (freq === 'hourly') {
+            cron = `0 * * * *`;
+        } else if (freq === 'workdays') {
+            cron = `${minute} ${hour} * * 1-5`;
+        }
+
+        document.getElementById('cronOutput').value = cron;
+        document.getElementById('displayCron').innerText = cron;
+    }
+
+    function toggleAdvanced() {
+        const section = document.getElementById('advancedSection');
+        section.style.display = section.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Initialize UI on load
+    window.onload = function() {
+        // Simple logic to pre-select dropdown based on current_schedule if possible
+        const current = "{{ current_schedule or '0 0 * * *' }}";
+        if (current.includes('*/12')) {
+            document.getElementById('frequency').value = 'twice';
+        } else if (current.endsWith('1-5')) {
+            document.getElementById('frequency').value = 'workdays';
+        } else if (current === '0 * * * *') {
+            document.getElementById('frequency').value = 'hourly';
+        } else {
+            document.getElementById('frequency').value = 'daily';
+        }
+        updateUI();
+    };
+{% endblock %}

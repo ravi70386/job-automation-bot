@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - JobBot{% endblock %}
+
+{% block content %}
+    <div class="grid">
+        <div class="card">
+            <h3>Bot Status</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">The bot is currently idle.</p>
+            <form action="/trigger" method="post">
+                <button type="submit" class="btn">🚀 Run Now</button>
+            </form>
+        </div>
+        <div class="card">
+            <h3>Next Execution</h3>
+            <p style="font-size: 2rem; font-weight: 700;">{{ next_run or "Undefined" }}</p>
+            <p style="color: var(--text-muted);">Scheduled at 00:00 AM daily</p>
+            <a href="/cron_ui" style="color: var(--primary); text-decoration: none; font-size: 0.875rem; display: block; margin-top: 1rem;">Change schedule →</a>
+        </div>
+        <div class="card">
+            <h3>Resume Pool</h3>
+            <p style="font-size: 2rem; font-weight: 700;">{{ resume_count }}</p>
+            <p style="color: var(--text-muted);">PDF resumes uploaded</p>
+            <a href="/resumes_ui" style="color: var(--primary); text-decoration: none; font-size: 0.875rem; display: block; margin-top: 1rem;">Manage pool →</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Recent Activity</h3>
+        <div style="max-height: 300px; overflow-y: auto;">
+            {% if recent_logs %}
+                {% for log in recent_logs %}
+                    <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
+                        <span>{{ log }}</span>
+                        <a href="/logs/{{ log }}" style="color: var(--primary);">View</a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: var(--text-muted);">No logs found.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
