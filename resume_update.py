@@ -19,12 +19,21 @@ PASSWORD = os.getenv("PASSWORD")
 # RESUME FOLDER
 # Keep 4 resumes here
 # ===============================
-resume_folder = r"C:\Users\G RAVI KUMAR\Desktop\resumes"
+# Check local "resumes" folder first
+local_resumes = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resumes")
+# Fallback to Windows path if needed
+windows_resumes = r"C:\Users\G RAVI KUMAR\Desktop\resumes"
 
-# Get all PDF resumes
-files = sorted(
-    [f for f in os.listdir(resume_folder) if f.lower().endswith(".pdf")]
-)
+resume_folder = local_resumes if os.path.exists(local_resumes) else windows_resumes
+
+try:
+    # Get all PDF resumes
+    files = sorted(
+        [f for f in os.listdir(resume_folder) if f.lower().endswith(".pdf")]
+    )
+except FileNotFoundError:
+    print(f"No resumes folder found. Please ensure {local_resumes} or {windows_resumes} exists.")
+    exit()
 
 # Check resumes exist
 if len(files) == 0:
