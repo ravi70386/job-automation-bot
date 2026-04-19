@@ -94,7 +94,12 @@
                 btn.disabled = false;
                 btn.innerText = originalText;
             } else if (data.status === 'started') {
-                checkStatus();
+                // Instantly update UI instead of waiting for poll
+                document.getElementById('idleState').style.display = 'none';
+                document.getElementById('runningState').style.display = 'block';
+                // Still reset button for next time (though it's hidden)
+                btn.disabled = false;
+                btn.innerText = originalText;
             }
         } catch (err) {
             showModal('Trigger Failed', 'Could not start the bot. Please check the logs or server status.', '❌');
