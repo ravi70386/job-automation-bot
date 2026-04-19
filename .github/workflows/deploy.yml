@@ -97,9 +97,8 @@ jobs:
             [Service]
             User=${{ secrets.EC2_USERNAME }}
             WorkingDirectory=$DEST_DIR
-            ExecStart=$DEST_DIR/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+            ExecStart=$DEST_DIR/venv/bin/gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --bind 127.0.0.1:8000 --timeout 600
             Restart=always
-            EnvironmentFile=$DEST_DIR/.env
 
             [Install]
             WantedBy=multi-user.target

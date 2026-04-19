@@ -8,3 +8,5 @@ python-crontab
 sqlalchemy
 bcrypt
 python-jose[cryptography]
+gunicorn
+uvicorn[standard]
