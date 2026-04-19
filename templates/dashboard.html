@@ -8,7 +8,7 @@
             <h3>Bot Status</h3>
             <div id="idleState">
                 <p style="color: var(--text-muted); margin-bottom: 1rem;">The bot is currently idle.</p>
-                <button onclick="triggerBot()" class="btn" id="runBtn">🚀 Run Now</button>
+                <button type="button" onclick="triggerBot(event)" class="btn" id="runBtn">🚀 Run Now</button>
             </div>
             <div id="runningState" style="display: none;">
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
@@ -61,43 +61,51 @@
     async function checkStatus() {
         try {
             const response = await fetch('/status');
+            if (response.status === 401) return; // Not logged in
             const data = await response.json();
             
             const idle = document.getElementById('idleState');
             const running = document.getElementById('runningState');
             
             if (data.is_running) {
-                idle.style.display = 'none';
-                running.style.display = 'block';
+                if (idle) idle.style.display = 'none';
+                if (running) running.style.display = 'block';
             } else {
-                idle.style.display = 'block';
-                running.style.display = 'none';
+                if (idle) idle.style.display = 'block';
+                if (running) running.style.display = 'none';
             }
         } catch (err) {
             console.error('Status check failed', err);
         }
     }
 
-    async function triggerBot() {
+    async function triggerBot(e) {
+        if (e) e.preventDefault();
         const btn = document.getElementById('runBtn');
         const originalText = btn.innerText;
         btn.disabled = true;
         btn.innerText = 'Starting...';
         
         try {
-            const response = await fetch('/trigger', { method: 'POST' });
-            if (!response.ok) throw new Error('Server returned error');
+            const response = await fetch('/trigger', { 
+                method: 'POST',
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (!response.ok) throw new Error('Server error');
             
             const data = await response.json();
             if (data.status === 'already_running') {
                 showModal('Bot Busy', 'The bot is already running in the background. Please wait for it to finish.', '⏳');
                 btn.disabled = false;
                 btn.innerText = originalText;
-            } else if (data.status === 'started') {
-                // Instantly update UI instead of waiting for poll
-                document.getElementById('idleState').style.display = 'none';
-                document.getElementById('runningState').style.display = 'block';
-                // Still reset button for next time (though it's hidden)
+            } else {
+                // Instantly update UI
+                const idle = document.getElementById('idleState');
+                const running = document.getElementById('runningState');
+                if (idle) idle.style.display = 'none';
+                if (running) running.style.display = 'block';
+                
                 btn.disabled = false;
                 btn.innerText = originalText;
             }
@@ -110,5 +118,5 @@
 
     // Poll every 3 seconds
     setInterval(checkStatus, 3000);
-    checkStatus();
+    window.addEventListener('DOMContentLoaded', checkStatus);
 {% endblock %}
