@@ -80,19 +80,26 @@
 
     async function triggerBot() {
         const btn = document.getElementById('runBtn');
+        const originalText = btn.innerText;
         btn.disabled = true;
         btn.innerText = 'Starting...';
         
         try {
             const response = await fetch('/trigger', { method: 'POST' });
+            if (!response.ok) throw new Error('Server returned error');
+            
             const data = await response.json();
-            if (data.status === 'started' || data.status === 'already_running') {
+            if (data.status === 'already_running') {
+                showModal('Bot Busy', 'The bot is already running in the background. Please wait for it to finish.', '⏳');
+                btn.disabled = false;
+                btn.innerText = originalText;
+            } else if (data.status === 'started') {
                 checkStatus();
             }
         } catch (err) {
-            alert('Failed to start bot');
+            showModal('Trigger Failed', 'Could not start the bot. Please check the logs or server status.', '❌');
             btn.disabled = false;
-            btn.innerText = '🚀 Run Now';
+            btn.innerText = originalText;
         }
     }
 
