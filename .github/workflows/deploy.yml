@@ -109,6 +109,13 @@ jobs:
             sudo systemctl enable job-bot
             sudo systemctl restart job-bot
 
+            # --- DIAGNOSTICS ---
+            echo "Checking service status..."
+            sleep 2
+            sudo systemctl status job-bot --no-pager || true
+            echo "Recent app logs:"
+            sudo journalctl -u job-bot -n 50 --no-pager || true
+
             # Setup initial cron job (runs every day at 00:00)
             (crontab -l 2>/dev/null | grep -v "job-automation-bot"; echo "0 0 * * * cd $DEST_DIR && $DEST_DIR/venv/bin/python $DEST_DIR/resume_update.py # job-automation-bot") | crontab -
 
