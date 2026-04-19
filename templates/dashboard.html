@@ -20,8 +20,12 @@
         <div class="card">
             <h3>Resume Pool</h3>
             <p style="font-size: 2rem; font-weight: 700;">{{ resume_count }}</p>
-            <p style="color: var(--text-muted);">PDF resumes uploaded</p>
-            <a href="/resumes_ui" style="color: var(--primary); text-decoration: none; font-size: 0.875rem; display: block; margin-top: 1rem;">Manage pool →</a>
+            <p style="color: var(--text-muted); margin-bottom: 0.5rem;">PDF resumes uploaded</p>
+            <div style="background: rgba(15,23,42,0.3); border-radius: 8px; padding: 0.5rem; margin: 1rem 0;">
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase; letter-spacing: 0.05em;">Up Next:</span>
+                <span style="font-size: 0.875rem; font-weight: 600; color: var(--primary);">{{ up_next }}</span>
+            </div>
+            <a href="/resumes_ui" style="color: var(--primary); text-decoration: none; font-size: 0.875rem; display: block;">Manage pool →</a>
         </div>
     </div>
 

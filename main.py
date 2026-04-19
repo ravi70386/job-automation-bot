@@ -148,9 +148,21 @@ async def logout(request: Request):
 async def dashboard(request: Request, user: User = Depends(get_current_user_from_cookie)):
     if not user: return RedirectResponse(url="/login")
     
-    resumes = os.listdir(RESUMES_DIR)
-    logs = sorted(os.listdir(LOGS_DIR), reverse=True)[:10] # Show more logs
+    resumes = sorted([f for f in os.listdir(RESUMES_DIR) if f.lower().endswith(".pdf")])
+    logs = sorted(os.listdir(LOGS_DIR), reverse=True)[:10]
     
+    # Round Robin detection
+    up_next = "None"
+    if resumes:
+        POINTER_FILE = ".resume_pointer"
+        idx = 0
+        if os.path.exists(POINTER_FILE):
+            try:
+                with open(POINTER_FILE, "r") as f:
+                    idx = int(f.read().strip())
+            except: pass
+        up_next = resumes[idx % len(resumes)]
+
     next_run = "Not Set"
     try:
         cron = CronTab(user=True)
@@ -164,7 +176,8 @@ async def dashboard(request: Request, user: User = Depends(get_current_user_from
         "active_page": "dashboard", 
         "resume_count": len(resumes), 
         "recent_logs": logs,
-        "next_run": next_run
+        "next_run": next_run,
+        "up_next": up_next
     })
 
 @app.get("/cron_ui", response_class=HTMLResponse)

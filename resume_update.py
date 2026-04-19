@@ -43,11 +43,27 @@ def run_update():
         logger.error("No resumes found in folder.")
         return
 
-    day = datetime.now().day
-    resume_file = files[(day - 1) % len(files)]
+    # Round Robin selection logic
+    POINTER_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".resume_pointer")
+    current_index = 0
+    
+    if os.path.exists(POINTER_FILE):
+        try:
+            with open(POINTER_FILE, "r") as f:
+                current_index = int(f.read().strip())
+        except:
+            current_index = 0
+    
+    # Calculate next index
+    next_index = current_index % len(files)
+    resume_file = files[next_index]
     RESUME_PATH = os.path.join(local_resumes, resume_file)
 
-    logger.info(f"Today's resume: {resume_file}")
+    # Save next pointer for future run
+    with open(POINTER_FILE, "w") as f:
+        f.write(str(next_index + 1))
+
+    logger.info(f"Round Robin Selection: [{next_index + 1}/{len(files)}] {resume_file}")
 
     # Set Chrome Options for Headless Mode
     chrome_options = Options()
