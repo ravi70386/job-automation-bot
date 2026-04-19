@@ -10,3 +10,4 @@ bcrypt
 python-jose[cryptography]
 gunicorn
 uvicorn[standard]
+webdriver-manager

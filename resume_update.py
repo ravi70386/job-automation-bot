@@ -8,6 +8,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 # ===============================
 # LOGGING SETUP
@@ -78,7 +80,8 @@ def run_update():
 
     logger.info("Setting up Chrome Driver...")
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         driver.set_window_size(1920, 1080)
         wait = WebDriverWait(driver, 30)
     except Exception as e:
