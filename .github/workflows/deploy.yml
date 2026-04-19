@@ -57,9 +57,13 @@ jobs:
             DEST_DIR="/home/${{ secrets.EC2_USERNAME }}/job-automation-bot"
             mkdir -p $DEST_DIR
 
+            # Paths to the manual Wildcard SSL certificates you just generated
+            CERT_PATH="/etc/letsencrypt/live/vinayjana.dev-0001/fullchain.pem"
+            KEY_PATH="/etc/letsencrypt/live/vinayjana.dev-0001/privkey.pem"
+
             # Install core dependencies
             sudo apt-get update -y
-            sudo apt-get install -y python3 python3-pip python3-venv unzip curl xvfb nginx certbot python3-certbot-nginx
+            sudo apt-get install -y python3 python3-pip python3-venv unzip curl xvfb nginx
 
             # Install Chrome & ChromeDriver
             if ! command -v google-chrome &> /dev/null; then
@@ -83,7 +87,7 @@ jobs:
             pip install --upgrade pip
             pip install -r requirements.txt
 
-            # Create systemd service for FastAPI (bind to localhost)
+            # Create systemd service for FastAPI
             sudo tee /etc/systemd/system/job-bot.service > /dev/null <<EOF
             [Unit]
             Description=Job Automation Bot Manager (FastAPI)
@@ -107,12 +111,27 @@ jobs:
             # Setup initial cron job (runs every day at 00:00)
             (crontab -l 2>/dev/null | grep -v "job-automation-bot"; echo "0 0 * * * cd $DEST_DIR && $DEST_DIR/venv/bin/python $DEST_DIR/resume_update.py # job-automation-bot") | crontab -
 
-            # --- 1. SET UP NGINX BASELINE ---
-            echo "Creating Nginx configuration for $DOMAIN..."
+            # --- Configure Nginx with Wildcard SSL ---
+            echo "Configuring Nginx with manual SSL paths..."
             sudo tee /etc/nginx/sites-available/$DOMAIN > /dev/null <<EOF
             server {
                 listen 80;
                 server_name $DOMAIN;
+                return 301 https://\$host\$request_uri;
+            }
+
+            server {
+                listen 443 ssl http2;
+                server_name $DOMAIN;
+
+                ssl_certificate $CERT_PATH;
+                ssl_certificate_key $KEY_PATH;
+
+                # Premium Security Headers
+                add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+                add_header X-Frame-Options "SAMEORIGIN";
+                add_header X-XSS-Protection "1; mode=block";
+                add_header X-Content-Type-Options "nosniff";
 
                 location / {
                     proxy_pass http://127.0.0.1:8000;
@@ -128,24 +147,7 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/
             sudo rm -f /etc/nginx/sites-enabled/default
 
-            # Verify and reload nginx to ensure HTTP works first
+            # Verify and reload nginx
             sudo nginx -t && sudo systemctl reload nginx
 
-            # --- 2. AUTO-GENERATE SSL CERTIFICATE ---
-            echo "Requesting SSL certificate..."
-            # This command will automatically update the Nginx file we just created with SSL settings
-            sudo certbot --nginx \
-                -d $DOMAIN \
-                --non-interactive \
-                --agree-tos \
-                --email ${{ secrets.EC2_EMAIL }} \
-                --redirect \
-                --expand || echo "Certbot failed (Check DNS propagation). Continuing with HTTP..."
-
-            # Final reload to apply everything
-            sudo systemctl reload nginx
-
-            sudo systemctl enable certbot.timer
-            sudo systemctl start certbot.timer
-
-            echo "✅ Deployment complete! Try accessing https://$DOMAIN"
+            echo "✅ Deployment complete! Live at https://$DOMAIN"
