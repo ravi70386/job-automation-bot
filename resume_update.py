@@ -66,6 +66,13 @@ def run_update():
 
     # Set Chrome Options for Premium Headless Execution
     chrome_options = Options()
+    
+    # Force use of standard Google Chrome (avoid Snap Chromium which crashes)
+    if os.path.exists("/usr/bin/google-chrome"):
+        chrome_options.binary_location = "/usr/bin/google-chrome"
+    elif os.path.exists("/usr/bin/google-chrome-stable"):
+        chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
